@@ -1,63 +1,129 @@
 # gsheet-sql-python
 
-Use Google Sheets like a PostgreSQL database — query with SQL, write Python ORM-style filters, and browse data in an interactive REPL.
-
-## Install
+**Query Google Sheets with SQL.** Treat each spreadsheet as a database, each tab as a table — run `SELECT`, `INSERT`, `UPDATE`, `DELETE`, filter with a Python API, and explore data in an interactive REPL.
 
 ```bash
 pip install gsheet-sql-python
 ```
 
-## Quick start
+---
+
+## Getting started
 
 ```python
 from gsheets_sql import connect
 
 db = connect(
     spreadsheet_id="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms",
-    credentials="credentials.json",  # service account or OAuth client secrets
+    credentials="credentials.json",
 )
+```
 
-# SQL query
-results = db.query("SELECT nome, idade FROM clientes WHERE idade > 30 ORDER BY nome")
+`credentials.json` can be a **service account** key or **OAuth 2.0** client secrets — a browser window opens on first OAuth use and the token is cached locally.
 
-# Python API
+---
+
+## SQL queries
+
+```python
+# Returns a list of dicts by default
+rows = db.query("SELECT nome, idade FROM clientes WHERE idade > 30 ORDER BY nome LIMIT 10")
+
+# Or a pandas DataFrame
+df = db.query("SELECT * FROM clientes", as_dataframe=True)
+```
+
+Supported: `WHERE`, `ORDER BY`, `GROUP BY`, `LIMIT`, `OFFSET`, `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `JOIN` between tabs.
+
+## DML
+
+```python
+db.execute("INSERT INTO clientes (nome, idade) VALUES ('Ana', 28)")
+db.execute("UPDATE clientes SET idade = 29 WHERE nome = 'Ana'")
+db.execute("DELETE FROM clientes WHERE nome = 'Ana'")
+```
+
+## Python API
+
+```python
 table = db["clientes"]
-table.filter(idade__gt=30)
+
+table.all()                                  # → DataFrame
+table.filter(idade__gt=30, ativo=True)       # ORM-style filters
+table.get(nome="Ana")                        # first match
+
 table.insert({"nome": "Ana", "idade": 28})
+table.insert_many([{"nome": "Bob"}, {"nome": "Clara"}])
 table.update({"idade": 29}, where={"nome": "Ana"})
 table.delete(where={"nome": "Ana"})
 
-# Pandas
-df = db.query("SELECT * FROM clientes", as_dataframe=True)
-db.from_dataframe("clientes", df, if_exists="replace")
+table.schema()     # inferred column types
+table.count()
 ```
 
-## REPL
+Supported filter suffixes: `__gt`, `__gte`, `__lt`, `__lte`, `__ne`, `__like`, `__ilike`, `__in`, `__isnull`.
+
+## Pandas integration
+
+```python
+db.from_dataframe("clientes", df, if_exists="replace")  # replace | append | fail
+```
+
+## Schema management
+
+```python
+db.tables()                                         # list tabs
+db.create_table("pedidos", ["id", "produto", "valor"])
+db.drop_table("pedidos")
+table.rename_column("preco", "valor")
+```
+
+---
+
+## Interactive REPL
 
 ```bash
 gsheets-sql --id <spreadsheet_id> --credentials credentials.json
 ```
 
 ```
-MinhaBase> \dt          # list tables
-MinhaBase> \d clientes  # describe schema
-MinhaBase> SELECT * FROM clientes LIMIT 10;
+MinhaBase> \dt
+ Tables
+--------
+ clientes
+ pedidos
+
+MinhaBase> \d clientes
+ Column | Type
+--------+------
+ id     | int
+ nome   | str
+ idade  | int
+ ativo  | bool
+
+MinhaBase> SELECT * FROM clientes WHERE idade > 30;
+ nome | idade | ativo
+------+-------+-------
+ Bob  |    35 | false
+(1 row)
+
+MinhaBase> \q
 ```
 
-## Authentication
+Meta-commands: `\dt` list tables · `\d <table>` describe schema · `\q` quit · `\?` help.
 
-- **Service Account**: pass the JSON file path to `credentials`
-- **OAuth 2.0**: pass the client secrets JSON — a browser window will open on first use; token is cached locally
+---
 
-## Features
+## Configuration
 
-- SQL `SELECT` with `WHERE`, `ORDER BY`, `GROUP BY`, `LIMIT`, `OFFSET`, aggregations (`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`)
-- `INSERT`, `UPDATE`, `DELETE` via SQL or Python API
-- ORM-style filters: `col__gt`, `col__lt`, `col__like`, `col__in`, `col__isnull`, …
-- Automatic type inference (int, float, bool, date, datetime, str)
-- In-memory cache with configurable TTL
-- Interactive REPL with rich table output
+```python
+db = connect(
+    spreadsheet_id="...",
+    credentials="credentials.json",
+    cache_ttl=60,    # seconds; 0 disables cache
+    header_row=1,    # row that contains column names
+)
+```
 
 ## License
 
