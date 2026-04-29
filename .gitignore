@@ -1,0 +1,23 @@
+# Credentials & tokens — never commit these
+credentials.json
+.gsheets_sql_token
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual env
+.venv/
+venv/
+
+# Pytest
+.pytest_cache/
+
+# Editor
+.DS_Store
+.vscode/
+.idea/
