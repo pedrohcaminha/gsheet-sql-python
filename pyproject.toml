@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gsheet-sql-python"
-version = "0.1.0"
+version = "0.1.1"
 description = "Use Google Sheets like a PostgreSQL database"
 readme = "README.md"
 requires-python = ">=3.10"
